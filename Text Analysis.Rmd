@@ -46,6 +46,9 @@ top_tokens <- wine_tokens %>%
 
 head(top_tokens) #words that lack information (and, the, a, of, with, this)
 ```
+
+
+
 ```{r Step 3}
 #shows the number of stop words automatically included in each type of list
 stop_words %>%
@@ -57,7 +60,7 @@ stop_words %>%
 stop_words[sample(nrow(stop_words), size = 8),]
 
 #making wine a stop word
-custom_stop_words <- bind_rows(stop_words, tibble(word = "wine", lexicon = "custom")) 
+custom_stop_words <- bind_rows(stop_words, tibble(word = "wine", lexicon = "custom"), tibble(word = "flavors", lexicon = "custom")) 
 
 #let's remove these stop words
 filtered_top_tokens <- top_tokens %>%
@@ -80,6 +83,7 @@ top_wine <- wine %>%
 
 top_wine
 ```
+
 ```{r Top Wine Designation by Number of Words Said}
 top_wine_words <- wine_tokens %>%
                     group_by(designation) %>%
@@ -88,6 +92,7 @@ top_wine_words <- wine_tokens %>%
 
 top_wine_words
 ```
+
 ```{r Wine Designation with Longest Description on Average}
 longest_avg_description <- wine %>%
                               mutate(line_length = str_length(description)) %>%
@@ -97,6 +102,7 @@ longest_avg_description <- wine %>%
 
 longest_avg_description
 ```
+
 ```{r Step 4: Lemmatization}
 #shall I do it?
 ```
