@@ -1,0 +1,146 @@
+---
+title: "Text Analysis"
+author: "Emma Lakatosh"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r Set Up}
+# data manipulation
+library(dplyr)
+library(stringr)
+
+# text stuff
+library(tidytext)
+library(SnowballC)
+library(textstem)
+library(textdata)
+
+# visuals
+library(wordcloud2)
+library(ggplot2)
+library(forcats)
+```
+
+```{r Step 1}
+wine <- read.csv("winemag-data-130k-v2.csv")
+names(wine)
+```
+
+```{r Step 2}
+#single word = token
+#use unnest_tokens() to break documents into tokens
+
+wine_tokens <- wine %>%
+                  unnest_tokens(word, description)
+
+wine_tokens %>%
+  select(designation, word) %>%
+  head()
+
+top_tokens <- wine_tokens %>%
+                group_by(word) %>%
+                summarise(count = n()) %>%
+                arrange(-count)
+
+head(top_tokens) #words that lack information (and, the, a, of, with, this)
+```
+```{r Step 3}
+#shows the number of stop words automatically included in each type of list
+stop_words %>%
+  group_by(lexicon) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+#stop word examples & which list they are found in
+stop_words[sample(nrow(stop_words), size = 8),]
+
+#making wine a stop word
+custom_stop_words <- bind_rows(stop_words, tibble(word = "wine", lexicon = "custom")) 
+
+#let's remove these stop words
+filtered_top_tokens <- top_tokens %>%
+                          anti_join(custom_stop_words, by = "word") #removes the stop words
+
+
+
+
+paste(nrow(top_tokens) - nrow(filtered_top_tokens), "instances of stop words removed")
+
+wordcloud2(filtered_top_tokens)
+```
+
+
+```{r Top Wine Designation by Number of Descriptions}
+top_wine <- wine %>%
+              group_by(designation) %>%
+              summarise(line_count = n()) %>%
+              arrange(desc(line_count))
+
+top_wine
+```
+```{r Top Wine Designation by Number of Words Said}
+top_wine_words <- wine_tokens %>%
+                    group_by(designation) %>%
+                    summarise(line_count = n()) %>%
+                    arrange(desc(line_count))
+
+top_wine_words
+```
+```{r Wine Designation with Longest Description on Average}
+longest_avg_description <- wine %>%
+                              mutate(line_length = str_length(description)) %>%
+                              group_by(designation) %>%
+                              summarise(avg_line_length = mean(line_length, na.rm = TRUE)) %>%
+                              arrange(desc(avg_line_length))
+
+longest_avg_description
+```
+```{r Step 4: Lemmatization}
+#shall I do it?
+```
+
+```{r Step 5: Dictionary Based Sentiment Analysis}
+# Many options: afinn, bing, nrc & loughran
+# Opting with afinn to be able to sum the sentiment
+
+afinn <- get_sentiments("afinn")
+
+sum_sentiment_by_char <- wine_tokens %>%
+                            left_join(afinn, by = "word") %>%
+                            group_by(designation) %>%
+                            summarise(sentiment = sum(value, na.rm = TRUE))
+
+#most positive designations
+sum_sentiment_by_char %>%
+  arrange(desc(sentiment)) %>%
+  head()
+
+#most negative designations
+sum_sentiment_by_char %>%
+  arrange(sentiment) %>%
+  head()
+
+```
+
+```{r Step 6}
+tfidf_by_designation <- wine_tokens %>%
+                          anti_join(custom_stop_words, by = "word") %>%
+                          group_by(word, designation) %>%
+                          summarise(n = n()) %>%
+                          bind_tf_idf(word, designation, n) %>%
+                          arrange(-tf_idf)
+
+tfidf_by_designation %>%
+  filter(n >300)
+
+#shows often occurring words in each designation
+```
+
+
+
+
+
+
+
